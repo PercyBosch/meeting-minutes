@@ -1,9 +1,12 @@
 from datetime import date as date_cls
 from pathlib import Path
 
+from dotenv import load_dotenv
 import streamlit as st
 
 from src.config import load_config
+
+load_dotenv()  # pick up GROQ_API_KEY / ANTHROPIC_API_KEY from a local .env (cloud mode)
 from src.pipeline import run_pipeline
 from src.store import list_meetings
 

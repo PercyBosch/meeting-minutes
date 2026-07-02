@@ -13,7 +13,7 @@ summarize:
   chunk_chars: 6000       # transcript characters per map chunk
   ollama:
     host: http://localhost:11434
-    model: llama3.2:3b      # fast + light; upgrade to llama3.1:8b for higher-quality minutes
+    model: llama3.1:8b      # higher-quality minutes (needs ~5GB; GPU recommended); llama3.2:3b is a lighter option
   claude:
     model: claude-opus-4-8   # cheaper alternative: claude-haiku-4-5 (needs ANTHROPIC_API_KEY)
 

@@ -2,7 +2,7 @@
 transcribe:
   provider: local        # local | groq
   local:
-    model: large-v3       # tiny|base|small|medium|large-v3 (large-v3 = best; fits 8GB GPU)
+    model: small          # tiny|base|small|medium|large-v3 — upgrade to large-v3 for best quality on GPU
     device: auto          # auto | cuda | cpu
     compute_type: int8_float16   # falls back to int8 on CPU automatically
   groq:
@@ -13,7 +13,7 @@ summarize:
   chunk_chars: 6000       # transcript characters per map chunk
   ollama:
     host: http://localhost:11434
-    model: llama3.1:8b
+    model: llama3.2:3b      # fast + light; upgrade to llama3.1:8b for higher-quality minutes
   claude:
     model: claude-opus-4-8   # cheaper alternative: claude-haiku-4-5 (needs ANTHROPIC_API_KEY)
 

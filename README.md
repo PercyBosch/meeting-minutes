@@ -8,7 +8,8 @@ Word (`.docx`) and/or PDF. Runs locally; free by default.
 1. Install **ffmpeg** (system package):
    - Ubuntu/WSL: `sudo apt-get update && sudo apt-get install -y ffmpeg`
 2. Install **Ollama** and pull a model:
-   - https://ollama.com/download — then `ollama pull llama3.1:8b`
+   - https://ollama.com/download — then `ollama pull llama3.2:3b`
+     (fast/light default; `ollama pull llama3.1:8b` gives higher-quality minutes)
    - Make sure it is running: `ollama serve` (or the desktop app).
 3. Install Python deps:
    - `python3 -m venv .venv && . .venv/bin/activate`

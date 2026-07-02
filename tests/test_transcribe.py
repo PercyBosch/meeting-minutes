@@ -41,6 +41,29 @@ def test_load_model_falls_back_to_cpu_on_gpu_error():
     assert calls[-1] == ("cpu", "int8")
 
 
+def test_transcribe_local_falls_back_to_cpu_on_runtime_error(monkeypatch):
+    # GPU construction succeeds but transcribe() raises a missing-CUDA-lib error;
+    # the whole transcription must retry on CPU rather than crash.
+    cfg = Config(raw={"transcribe": {"provider": "local", "local": {"device": "cuda"}}})
+    attempts = []
+
+    class FakeModel:
+        def __init__(self, name, device, compute_type):
+            self.device = device
+            attempts.append(device)
+
+        def transcribe(self, path):
+            if self.device != "cpu":
+                raise RuntimeError("Library libcublas.so.12 is not found")
+            seg = type("Seg", (), {"start": 0.0, "end": 1.0, "text": " hi "})()
+            return [seg], None
+
+    monkeypatch.setattr(transcribe, "_whisper_model_cls", lambda: FakeModel)
+    out = transcribe._transcribe_local("a.wav", cfg)
+    assert attempts == ["cuda", "cpu"]
+    assert out == [Segment(0.0, 1.0, "hi")]
+
+
 def test_transcribe_groq_requires_key(monkeypatch):
     cfg = Config(raw={"transcribe": {"provider": "groq"}})
     monkeypatch.delenv("GROQ_API_KEY", raising=False)

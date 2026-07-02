@@ -24,15 +24,32 @@ def load_model(model_cls, name, device, compute_type):
         return model_cls(name, device="cpu", compute_type="int8")
 
 
-def _transcribe_local(wav_path, cfg) -> list[Segment]:
+def _whisper_model_cls():
     from faster_whisper import WhisperModel
 
+    return WhisperModel
+
+
+def _run_whisper(model_cls, name, device, compute_type, wav_path) -> list[Segment]:
+    model = load_model(model_cls, name, device, compute_type)
+    segments, _info = model.transcribe(str(wav_path))
+    return [Segment(start=s.start, end=s.end, text=s.text.strip()) for s in segments]
+
+
+def _transcribe_local(wav_path, cfg) -> list[Segment]:
     name = cfg.get("transcribe.local.model", "large-v3")
     device = cfg.get("transcribe.local.device", "auto")
     compute_type = cfg.get("transcribe.local.compute_type", "int8_float16")
-    model = load_model(WhisperModel, name, device, compute_type)
-    segments, _info = model.transcribe(str(wav_path))
-    return [Segment(start=s.start, end=s.end, text=s.text.strip()) for s in segments]
+    model_cls = _whisper_model_cls()
+    try:
+        return _run_whisper(model_cls, name, device, compute_type, wav_path)
+    except Exception:
+        # CUDA runtime libraries (libcublas/libcudnn) may be missing even when a
+        # GPU is detected — the failure can surface at transcribe time, not just
+        # construction. Retry the whole transcription on CPU rather than crash.
+        if device == "cpu":
+            raise
+        return _run_whisper(model_cls, name, "cpu", "int8", wav_path)
 
 
 def _transcribe_groq(wav_path, cfg) -> list[Segment]:

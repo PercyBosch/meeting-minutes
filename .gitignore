@@ -12,6 +12,9 @@ env/
 # Local meeting history (recordings + generated docs)
 meetings/
 
+# Local runtime stack installed by start.sh (Ollama binary, models, samples) — multi-GB
+.local/
+
 # Model caches / temp
 .cache/
 *.wav

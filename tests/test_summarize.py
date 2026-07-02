@@ -10,6 +10,7 @@ from src.summarize import summarize, parse_json, SummarizeError
 
 REDUCE_RESULT = {
     "summary": "We agreed to ship Friday.",
+    "key_points": ["Launch is on track", "Costs were raised"],
     "decisions": ["Ship Friday"],
     "action_items": [{"task": "Write notes", "owner": "Percy", "due": "Thu"}],
     "topics": ["Launch"],
@@ -44,6 +45,7 @@ def test_summarize_builds_minutes_from_llm(monkeypatch):
 
     assert minutes.title == "Sync"
     assert minutes.summary == "We agreed to ship Friday."
+    assert minutes.key_points == ["Launch is on track", "Costs were raised"]
     assert minutes.action_items[0].owner == "Percy"
     assert call_count["n"] >= 2  # at least one map + one reduce
 

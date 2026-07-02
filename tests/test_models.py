@@ -7,6 +7,7 @@ def test_minutes_round_trips_through_dict():
         date="2026-07-02",
         attendees=["Percy", "Stefan"],
         summary="Discussed the launch.",
+        key_points=["Launch on track", "Costs discussed"],
         decisions=["Ship on Friday"],
         action_items=[ActionItem(task="Write release notes", owner="Percy", due="Thu")],
         topics=["Launch", "Testing"],
@@ -15,6 +16,7 @@ def test_minutes_round_trips_through_dict():
     restored = Minutes.from_dict(m.to_dict())
     assert restored == m
     assert restored.action_items[0].owner == "Percy"
+    assert restored.key_points == ["Launch on track", "Costs discussed"]
 
 
 def test_segment_defaults_speaker_to_none():

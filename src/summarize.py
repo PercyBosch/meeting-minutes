@@ -26,29 +26,56 @@ def chunk_transcript(segments: list[Segment], max_chars: int = 6000) -> list[str
     return chunks
 
 
-MAP_PROMPT = """You are summarizing part {i} of {n} of a meeting transcript.
-Extract the key points, decisions, and any action items from THIS excerpt only.
-Be concise and factual. Excerpt:
+# "map" step: pull thorough notes out of each chunk so nothing important is lost.
+MAP_PROMPT = """You are analyzing part {i} of {n} of a transcript.
+Write thorough, specific notes on THIS excerpt: the main points and arguments made,
+important details and examples, any names mentioned, and any decisions or action items
+if present. Capture substance, not just headings. Excerpt:
 \"\"\"
 {chunk}
 \"\"\""""
 
-REDUCE_PROMPT = """You are writing the final minutes for a meeting titled "{title}" held on {date}.
-Attendees: {attendees}.
-Below are ordered notes from consecutive parts of the meeting. Merge them into
-final minutes. Return ONLY valid JSON with this exact schema:
+# Content-type guidance injected into the reduce step.
+_MEETING_GUIDANCE = (
+    "This is a MEETING. Fill 'decisions', 'action_items' (task/owner/due), and "
+    "'next_steps' from what was agreed; leave a field empty only if truly none. "
+    "Still write a full 'summary' and 'key_points'."
+)
+_NONMEETING_GUIDANCE = (
+    "This is NOT a meeting. Leave 'decisions', 'action_items', and 'next_steps' as "
+    "empty arrays []. Put ALL the substance into a detailed multi-sentence 'summary' "
+    "and a rich 'key_points' list (the specific ideas, insights, facts and takeaways), "
+    "and give 'topics' with a short description each."
+)
+
+_STYLE_LABEL = {
+    "meeting": "set of meeting minutes",
+    "podcast": "summary of a podcast / interview",
+    "talk": "summary of a talk or lecture",
+    "general": "detailed summary of a recording",
+}
+
+REDUCE_PROMPT = """You are writing a {style_label} titled "{title}" ({date}).
+{attendees_line}Below are ordered notes covering the whole recording. Produce a
+thorough, well-written result — be substantial and specific, not vague.
+
+Return ONLY valid JSON with exactly this schema:
 {{
-  "summary": "one concise paragraph",
-  "decisions": ["..."],
+  "summary": "a detailed overview in full prose, 4-8 sentences across one or two paragraphs",
+  "key_points": ["the most important points, insights, facts and takeaways — 6 to 12 specific bullets"],
+  "topics": ["each main topic as 'Topic: a one-line description'"],
+  "decisions": ["decisions that were made"],
   "action_items": [{{"task": "...", "owner": "", "due": ""}}],
-  "topics": ["..."],
-  "next_steps": ["..."]
+  "next_steps": ["concrete next steps"]
 }}
+
+{guidance}
+
 Notes:
 {notes}"""
 
 
-def summarize(segments, title, date, attendees, cfg) -> Minutes:
+def summarize(segments, title, date, attendees, cfg, content_type: str = "general") -> Minutes:
     chunks = chunk_transcript(segments, cfg.get("summarize.chunk_chars", 6000))
     if not chunks:
         raise SummarizeError("Empty transcript; nothing to summarize.")
@@ -58,11 +85,15 @@ def summarize(segments, title, date, attendees, cfg) -> Minutes:
         for i, c in enumerate(chunks)
     ]
     notes = "\n\n".join(f"Part {i + 1}:\n{p}" for i, p in enumerate(partials))
+    guidance = _MEETING_GUIDANCE if content_type == "meeting" else _NONMEETING_GUIDANCE
+    attendees_line = f"Attendees/speakers: {', '.join(attendees)}.\n" if attendees else ""
     raw = call(
         REDUCE_PROMPT.format(
+            style_label=_STYLE_LABEL.get(content_type, _STYLE_LABEL["general"]),
             title=title,
             date=date,
-            attendees=", ".join(attendees) or "not specified",
+            attendees_line=attendees_line,
+            guidance=guidance,
             notes=notes,
         )
     )
@@ -72,9 +103,10 @@ def summarize(segments, title, date, attendees, cfg) -> Minutes:
         date=date,
         attendees=list(attendees),
         summary=data.get("summary", ""),
+        key_points=data.get("key_points", []),
+        topics=data.get("topics", []),
         decisions=data.get("decisions", []),
         action_items=[ActionItem(**a) for a in data.get("action_items", [])],
-        topics=data.get("topics", []),
         next_steps=data.get("next_steps", []),
     )
 
@@ -104,7 +136,14 @@ def _ollama_call(prompt, cfg) -> str:
     try:
         resp = requests.post(
             f"{host}/api/generate",
-            json={"model": model, "prompt": prompt, "stream": False},
+            json={
+                "model": model,
+                "prompt": prompt,
+                "stream": False,
+                # Keep the default context so the model stays fully on the GPU
+                # (a larger num_ctx can overflow 8GB VRAM and fall back to slow CPU).
+                "options": {"temperature": 0.3},
+            },
             timeout=600,
         )
     except requests.exceptions.ConnectionError as e:

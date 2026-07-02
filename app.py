@@ -22,18 +22,26 @@ with tab_new:
     uploaded = st.file_uploader(
         "Meeting recording", type=["mp3", "mp4", "m4a", "wav", "mov", "webm", "mkv"]
     )
-    title = st.text_input("Meeting title", value="Team Meeting")
-    meeting_date = st.date_input("Date", value=date_cls.today())
-    attendees_raw = st.text_input("Attendees (comma-separated, optional)")
-    st.checkbox(
-        "Speaker labels (experimental)",
-        value=False,
-        disabled=True,
-        help="Optional diarization — reserved for a future version.",
+    title = st.text_input("Title", value="Recording")
+    CONTENT_TYPES = {
+        "Podcast / interview": "podcast",
+        "Talk / lecture": "talk",
+        "Meeting": "meeting",
+        "General recording": "general",
+    }
+    ct_label = st.selectbox(
+        "Content type",
+        list(CONTENT_TYPES),
+        index=0,
+        help="Tailors the summary. 'Meeting' adds Decisions / Action items / Next steps; "
+        "the others focus on a detailed summary + key points.",
     )
+    content_type = CONTENT_TYPES[ct_label]
+    meeting_date = st.date_input("Date", value=date_cls.today())
+    attendees_raw = st.text_input("Attendees / speakers (comma-separated, optional)")
     fmt = st.multiselect("Output format", ["docx", "pdf"], default=["docx", "pdf"])
 
-    if st.button("Generate Minutes", type="primary"):
+    if st.button("Generate Summary", type="primary"):
         if not uploaded:
             st.error("Please upload a recording first.")
         elif not fmt:
@@ -68,6 +76,7 @@ with tab_new:
                     formats=fmt,
                     cfg=cfg,
                     workdir=str(work),
+                    content_type=content_type,
                     progress=on_step,
                 )
             except Exception as e:  # surface a clean message, not a traceback

@@ -7,7 +7,10 @@ from .render import to_docx, to_pdf
 from .store import save_meeting
 
 
-def run_pipeline(input_path, title, date, attendees, formats, cfg, workdir, progress=None) -> dict:
+def run_pipeline(
+    input_path, title, date, attendees, formats, cfg, workdir,
+    content_type="general", progress=None,
+) -> dict:
     def step(msg):
         if progress:
             progress(msg)
@@ -23,7 +26,7 @@ def run_pipeline(input_path, title, date, attendees, formats, cfg, workdir, prog
     transcript_text = "\n".join(s.text for s in segments)
 
     step("Summarizing…")
-    minutes = summarize(segments, title, date, attendees, cfg)
+    minutes = summarize(segments, title, date, attendees, cfg, content_type=content_type)
 
     step("Rendering documents…")
     files = {}

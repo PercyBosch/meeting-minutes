@@ -22,9 +22,10 @@ class Minutes:
     date: str
     attendees: list[str] = field(default_factory=list)
     summary: str = ""
+    key_points: list[str] = field(default_factory=list)
+    topics: list[str] = field(default_factory=list)
     decisions: list[str] = field(default_factory=list)
     action_items: list[ActionItem] = field(default_factory=list)
-    topics: list[str] = field(default_factory=list)
     next_steps: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict:

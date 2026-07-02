@@ -36,7 +36,7 @@ lightest "clone and run" path and works the same on macOS, Linux, and Windows.
 
 1. Install **ffmpeg**: macOS `brew install ffmpeg` · Ubuntu/WSL `sudo apt-get install -y ffmpeg`
 2. Install **Ollama** and pull the model: https://ollama.com/download then
-   `ollama pull llama3.1:8b` (or the lighter `ollama pull llama3.2:3b`)
+   `ollama pull llama3.2:3b` (the default — fits an 8GB GPU and runs fast)
 3. `python3 -m venv .venv && . .venv/bin/activate && pip install -r requirements.txt`
 4. `streamlit run app.py`
 
@@ -47,8 +47,13 @@ Everything is local and free by default. Switch any stage to a cloud service:
 - **Transcription** → `transcribe.provider: groq` + `GROQ_API_KEY` (fast, pennies).
 - **Summarization** → `summarize.provider: claude` + `ANTHROPIC_API_KEY`
   (`summarize.claude.model` defaults to `claude-opus-4-8`; `claude-haiku-4-5` is cheaper).
-- **Quality vs speed** → transcription `large-v3` and summarizer `llama3.1:8b` give the
-  best minutes; `small` / `llama3.2:3b` are faster and lighter.
+- **Content type** → in the dashboard, pick Podcast / Talk / Meeting / General. "Meeting"
+  adds Decisions / Action items / Next steps; the others focus on a detailed summary + key points.
+- **Quality vs speed** → the `llama3.2:3b` summarizer is the default because it fits an 8GB GPU
+  and runs fast. `llama3.1:8b` is a bit sharper but needs **~6GB free VRAM** — on an 8GB card
+  shared with a desktop it can spill into slow shared memory, so only switch to it on a machine
+  with more headroom (or a Mac with 16GB+ unified memory). Transcription `large-v3` is the top
+  quality tier but slow on CPU-only machines; `small`/`medium` are the sensible default.
 
 ## GPU notes
 
